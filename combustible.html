@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelSystem Pro v7.0 - CLOUD SYNC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen pb-20">
+
+    <nav class="bg-blue-900 text-white p-4 sticky top-0 z-50 shadow-xl">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="font-black italic text-lg text-yellow-400">⛽ FUEL-MASTER CLOUD v7.0</h1>
+            <div class="flex space-x-1 text-[10px] font-bold">
+                <button onclick="verTab('ventas')" class="bg-blue-700 px-2 py-1 rounded">VENTAS</button>
+                <button onclick="verTab('compras')" class="bg-emerald-700 px-2 py-1 rounded">COMPRAS</button>
+                <button onclick="verTab('contabilidad')" class="bg-purple-700 px-2 py-1 rounded">REPORTES</button>
+                <button onclick="verTab('admin')" class="bg-slate-700 px-2 py-1 rounded">ADMIN</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-2 max-w-6xl">
+        <div class="grid grid-cols-3 gap-2 mb-4 text-center font-bold">
+            <div class="bg-white p-2 rounded shadow border-b-4 border-orange-500">
+                <p class="text-[10px] text-gray-400">Súper</p>
+                <p class="text-sm"><span id="stk_super">0</span> <small>Gls</small></p>
+            </div>
+            <div class="bg-white p-2 rounded shadow border-b-4 border-red-500">
+                <p class="text-[10px] text-gray-400">Regular</p>
+                <p class="text-sm"><span id="stk_regular">0</span> <small>Gls</small></p>
+            </div>
+            <div class="bg-white p-2 rounded shadow border-b-4 border-black">
+                <p class="text-[10px] text-gray-400">Diésel</p>
+                <p class="text-sm"><span id="stk_diesel">0</span> <small>Gls</small></p>
+            </div>
+        </div>
+
+        <section id="sec-ventas">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border-t-4 border-blue-600 mb-6">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <input type="date" id="v_fecha" class="p-3 border rounded-xl bg-gray-50">
+                    <input type="text" id="v_orden" placeholder="No. Orden" class="p-3 border rounded-xl font-bold text-blue-600">
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="v_cliente" onchange="filtrarVehiculos()" class="p-3 border rounded-xl bg-yellow-50 font-bold"></select>
+                        <select id="v_placa" onchange="autoCompletarArea()" class="p-3 border rounded-xl bg-blue-50 font-bold"></select>
+                    </div>
+                    <input type="text" id="v_area" placeholder="Área" class="p-3 border rounded-xl bg-gray-50 italic">
+                    <select id="v_prod" onchange="asignarPrecioAuto()" class="p-3 border rounded-xl font-bold border-blue-200">
+                        <option value="">-- Combustible --</option>
+                        <option value="Súper">Súper</option>
+                        <option value="Regular">Regular</option>
+                        <option value="Diésel">Diésel</option>
+                        <option value="ANULADA">ANULADA</option>
+                    </select>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" id="v_cant" oninput="calcVenta()" placeholder="Gls" class="p-3 border rounded-xl font-bold">
+                        <input type="number" id="v_precio" oninput="calcVenta()" placeholder="$" class="p-3 border rounded-xl bg-gray-100 font-bold">
+                        <input type="number" id="v_desc" oninput="calcVenta()" value="0" class="p-3 border rounded-xl bg-red-50 text-red-600 font-bold">
+                    </div>
+                </div>
+                <div class="mt-4 bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center">
+                    <span class="text-2xl font-black text-green-400">$ <span id="v_total">0.00</span></span>
+                    <input type="hidden" id="v_edit_index" value="-1">
+                    <div class="flex space-x-2">
+                        <button onclick="cancelarVenta()" class="bg-slate-600 px-3 py-2 rounded-lg font-bold text-[10px]">LIMPIAR</button>
+                        <button id="btn-registrar" onclick="realizarVenta()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold uppercase text-xs">Guardar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow overflow-hidden">
+                <div class="p-3 bg-gray-800 text-white flex justify-between items-center">
+                    <span class="text-[10px] font-bold uppercase">Registro Local</span>
+                    <button onclick="exportarVentasExcel()" class="bg-green-600 px-2 py-1 rounded text-[10px]">EXCEL</button>
+                </div>
+                <div class="overflow-x-auto"><table class="w-full text-[11px] text-left border-collapse"><thead class="bg-gray-100 border-b"><tr><th class="p-2">Fecha/Ord</th><th class="p-2">Placa</th><th class="p-2">Detalle</th><th class="p-2 text-right">Total</th><th class="p-2 text-center">⚙️</th></tr></thead><tbody id="lista_ventas" class="divide-y italic"></tbody></table></div>
+            </div>
+        </section>
+
+        <section id="sec-compras" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-emerald-600 mb-6">
+                <div class="grid grid-cols-2 gap-3 mb-4"><input type="date" id="c_fecha" class="p-3 border rounded-xl"><input type="text" id="c_factura" placeholder="No. Factura" class="p-3 border rounded-xl font-bold"></div>
+                <select id="c_prod" class="w-full p-3 border rounded-xl font-bold bg-gray-50 mb-4"><option value="Súper">Súper</option><option value="Regular">Regular</option><option value="Diésel">Diésel</option></select>
+                <div class="grid grid-cols-2 gap-2 mb-4"><input type="number" id="c_cant" oninput="calcCostoCompra()" placeholder="Gls" class="p-3 border rounded-xl"><input type="number" id="c_costo_total" oninput="calcCostoCompra()" placeholder="Total $" class="p-3 border rounded-xl"></div>
+                <div class="grid grid-cols-2 gap-2 mb-4"><div class="p-2 bg-gray-100 rounded text-center text-[10px]">Costo: <span id="c_unitario_show" class="font-bold text-orange-600">$0.00</span></div><input type="number" id="c_precio_venta" placeholder="Precio Venta" class="p-3 border rounded-xl bg-blue-50 font-bold"></div>
+                <div class="flex space-x-2"><input type="hidden" id="c_edit_index" value="-1"><button onclick="cancelarCompra()" class="bg-slate-500 text-white px-4 py-3 rounded-xl font-bold text-xs">LIMPIAR</button><button id="btn-comprar" onclick="registrarCompra()" class="flex-1 bg-emerald-600 text-white p-4 rounded-xl font-bold uppercase">Guardar Compra</button></div>
+            </div>
+            <div class="bg-white rounded-xl shadow overflow-hidden"><div class="p-3 bg-emerald-900 text-white flex justify-between items-center"><span class="text-[10px] font-bold">ABASTECIMIENTOS</span><button onclick="exportarComprasExcel()" class="bg-white text-emerald-800 px-2 py-1 rounded text-[10px]">EXCEL</button></div><div class="overflow-x-auto"><table class="w-full text-[10px] text-left border-collapse"><thead class="bg-gray-100 border-b"><tr><th class="p-2">Fecha</th><th class="p-2">Factura</th><th class="p-2">Producto</th><th class="p-2">Gls</th><th class="p-2">Total</th><th class="p-2 text-center">⚙️</th></tr></thead><tbody id="lista_compras" class="divide-y italic"></tbody></table></div></div>
+        </section>
+
+        <section id="sec-contabilidad" class="hidden">
+            <div class="bg-purple-900 text-white p-4 rounded-2xl mb-4 flex gap-2"><input type="date" id="cont_desde" class="p-2 rounded bg-purple-800 text-xs text-white"><input type="date" id="cont_hasta" class="p-2 rounded bg-purple-800 text-xs text-white"><button onclick="calcularContabilidad()" class="bg-yellow-500 text-black px-4 rounded font-bold text-xs uppercase">Filtrar</button></div>
+            <div class="bg-white p-4 rounded-xl shadow mb-4"><canvas id="chartVentas" style="max-height: 200px;"></canvas></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow border-t-4 border-blue-500"><div class="flex justify-between items-center mb-2"><h3 class="font-bold text-xs">POR PLACA</h3><button onclick="exportarBIExcel('placa')" class="text-[9px] bg-blue-600 text-white px-2 py-1 rounded">EXCEL</button></div><div class="max-h-40 overflow-y-auto"><table class="w-full text-[10px]"><tbody id="res_por_placa"></tbody></table></div></div>
+                <div class="bg-white p-4 rounded-xl shadow border-t-4 border-green-500"><div class="flex justify-between items-center mb-2"><h3 class="font-bold text-xs">POR ÁREA</h3><button onclick="exportarBIExcel('area')" class="text-[9px] bg-blue-600 text-white px-2 py-1 rounded">EXCEL</button></div><div class="max-h-40 overflow-y-auto"><table class="w-full text-[10px]"><tbody id="res_por_area"></tbody></table></div></div>
+            </div>
+        </section>
+
+        <section id="sec-admin" class="hidden">
+            <div class="bg-white p-6 rounded-xl shadow">
+                <div class="flex gap-2 mb-6"><button onclick="descargarBackup()" class="flex-1 bg-blue-600 text-white p-3 rounded font-bold text-xs">DESCARGAR BACKUP</button><input type="file" id="fIn" class="hidden" onchange="restaurarBackup(event)"><button onclick="document.getElementById('fIn').click()" class="flex-1 bg-slate-200 p-3 rounded font-bold text-xs">RESTAURAR</button></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="border p-4 rounded"><h4 class="font-bold mb-2 uppercase text-xs">Nueva Empresa</h4><input type="text" id="adm_c_nom" class="w-full p-2 border mb-2 text-sm" placeholder="Nombre Empresa"><button onclick="addCliente()" class="w-full bg-black text-white p-2 rounded text-xs">AÑADIR</button></div>
+                    <div class="border p-4 rounded"><h4 class="font-bold mb-2 uppercase text-xs">Vincular Placa</h4><select id="adm_v_cli" class="w-full p-2 border mb-2 text-sm"></select><input type="text" id="adm_v_pla" class="w-full p-2 border mb-2 text-sm uppercase" placeholder="Placa"><input type="text" id="adm_v_area" class="w-full p-2 border mb-2 text-sm" placeholder="Área"><button onclick="addVehiculo()" class="w-full bg-yellow-600 text-white p-2 rounded text-xs">VINCULAR</button></div>
+                </div>
+                <button onclick="borrarTodo()" class="w-full mt-20 text-red-500 underline text-[10px] font-black uppercase">Borrar toda la base de datos local</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- CONFIGURACIÓN DE NUBE (VINCULADA) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxoftDpFVN5TIBwViMsbhMrNfPci5WEVhomWcj9_2sxbo7y_nXNQrGPrnDa8jhA0oQ7/exec";
+
+        let app = JSON.parse(localStorage.getItem('fuelDB')) || {
+            clientes: [], vehiculos: [], ventas: [], compras: [],
+            stock: { "Súper": 0, "Regular": 0, "Diésel": 0 },
+            precios: { "Súper": 0, "Regular": 0, "Diésel": 0 }
+        };
+        let myChart = null;
+
+        async function save(datosNube = null) {
+            localStorage.setItem('fuelDB', JSON.stringify(app));
+            actualizarUI(); renderVentas(); renderCompras();
+
+            // Envío a Google Sheets
+            if (datosNube) {
+                try {
+                    await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(datosNube)
+                    });
+                    console.log("☁️ Nube sincronizada correctamente");
+                } catch (e) {
+                    console.error("❌ Error de red con la nube", e);
+                }
+            }
+        }
+
+        function verTab(t) { document.querySelectorAll('section').forEach(s => s.classList.add('hidden')); document.getElementById('sec-' + t).classList.remove('hidden'); if (t === 'contabilidad') calcularContabilidad(); }
+
+        // --- LÓGICA COMPRAS ---
+        function calcCostoCompra() { const c = parseFloat(document.getElementById('c_cant').value) || 0; const t = parseFloat(document.getElementById('c_costo_total').value) || 0; document.getElementById('c_unitario_show').innerText = "$" + (c > 0 ? (t / c).toFixed(2) : "0.00"); }
+        function registrarCompra() {
+            const f = document.getElementById('c_fecha').value;
+            const prod = document.getElementById('c_prod').value;
+            const cant = parseFloat(document.getElementById('c_cant').value) || 0;
+            const totalC = parseFloat(document.getElementById('c_costo_total').value) || 0;
+            const idx = parseInt(document.getElementById('c_edit_index').value);
+            if (!f || cant <= 0) return alert("Faltan datos");
+            const obj = { tipo: "COMPRA", fecha: f, factura: document.getElementById('c_factura').value, producto: prod, cantidad: cant, costoTotal: totalC, unitario: totalC / cant, precioVenta: parseFloat(document.getElementById('c_precio_venta').value) || 0 };
+            if (idx > -1) { app.stock[app.compras[idx].producto] -= app.compras[idx].cantidad; app.compras[idx] = obj; } else { app.compras.unshift(obj); }
+            app.stock[prod] += cant; app.precios[prod] = obj.precioVenta;
+            save(obj); cancelarCompra();
+        }
+        function editarCompra(i) { const c = app.compras[i]; document.getElementById('c_fecha').value = c.fecha; document.getElementById('c_factura').value = c.factura; document.getElementById('c_prod').value = c.producto; document.getElementById('c_cant').value = c.cantidad; document.getElementById('c_costo_total').value = c.costoTotal; document.getElementById('c_precio_venta').value = c.precioVenta; document.getElementById('c_edit_index').value = i; document.getElementById('btn-comprar').innerText = "Actualizar"; verTab('compras'); }
+        function eliminarCompra(i) { if (confirm("¿Eliminar abastecimiento?")) { app.stock[app.compras[i].producto] -= app.compras[i].cantidad; app.compras.splice(i, 1); save(); } }
+        function cancelarCompra() { document.getElementById('c_edit_index').value = "-1"; document.getElementById('btn-comprar').innerText = "Guardar Compra";["c_cant", "c_costo_total", "c_factura", "c_precio_venta"].forEach(id => document.getElementById(id).value = ""); }
+        function renderCompras() { document.getElementById('lista_compras').innerHTML = app.compras.map((c, i) => `<tr class="border-b"><td class="p-2">${c.fecha}</td><td class="p-2 text-[9px]">${c.factura}</td><td class="p-2 font-bold">${c.producto}</td><td class="p-2">${c.cantidad}</td><td class="p-2 text-right font-bold">$${c.costoTotal.toFixed(2)}</td><td class="p-2 text-center"><button onclick="editarCompra(${i})" class="text-blue-500 mr-2">✎</button><button onclick="eliminarCompra(${i})" class="text-red-500">🗑</button></td></tr>`).join(''); }
+
+        // --- LÓGICA VENTAS ---
+        function asignarPrecioAuto() { const p = document.getElementById('v_prod').value; document.getElementById('v_precio').value = (p === "ANULADA") ? 0 : (app.precios[p] || 0); calcVenta(); }
+        function calcVenta() { const c = parseFloat(document.getElementById('v_cant').value) || 0; const p = parseFloat(document.getElementById('v_precio').value) || 0; const d = parseFloat(document.getElementById('v_desc').value) || 0; document.getElementById('v_total').innerText = ((c * p) - d).toFixed(2); }
+        function realizarVenta() {
+            const prod = document.getElementById('v_prod').value;
+            const cant = parseFloat(document.getElementById('v_cant').value) || 0;
+            const cid = document.getElementById('v_cliente').value;
+            const placa = document.getElementById('v_placa').value;
+            const idx = parseInt(document.getElementById('v_edit_index').value);
+            if (!prod || !placa || !cid) return alert("Faltan datos");
+            if (idx > -1) { const ant = app.ventas[idx]; if (ant.producto !== "--- ANULADA ---") app.stock[ant.producto] += ant.cantidad; }
+            if (prod !== "ANULADA" && cant > app.stock[prod]) { if (idx > -1) app.stock[app.ventas[idx].producto] -= app.ventas[idx].cantidad; return alert("Sin Stock"); }
+            const ven = { tipo: "VENTA", fecha: document.getElementById('v_fecha').value, orden: document.getElementById('v_orden').value, cliente: app.clientes.find(c => c.id == cid).nombre, placa: placa, area: document.getElementById('v_area').value, producto: (prod === "ANULADA" || cant === 0) ? "--- ANULADA ---" : prod, cantidad: cant, precio: parseFloat(document.getElementById('v_precio').value), descuento: parseFloat(document.getElementById('v_desc').value), total: parseFloat(document.getElementById('v_total').innerText), clienteId: cid };
+            if (prod !== "ANULADA") app.stock[prod] -= cant;
+            if (idx > -1) app.ventas[idx] = ven; else { app.ventas.unshift(ven); let ord = document.getElementById('v_orden').value; if (!isNaN(ord) && ord !== "") document.getElementById('v_orden').value = parseInt(ord) + 1; }
+            save(ven); cancelarVenta();
+        }
+        function editarVenta(i) { const v = app.ventas[i]; document.getElementById('v_fecha').value = v.fecha; document.getElementById('v_orden').value = v.orden; document.getElementById('v_cliente').value = v.clienteId; filtrarVehiculos(); document.getElementById('v_placa').value = v.placa; document.getElementById('v_area').value = v.area; document.getElementById('v_prod').value = (v.producto === "--- ANULADA ---") ? "ANULADA" : v.producto; document.getElementById('v_cant').value = v.cantidad; document.getElementById('v_precio').value = v.precio; document.getElementById('v_desc').value = v.descuento; document.getElementById('v_total').innerText = v.total; document.getElementById('v_edit_index').value = i; document.getElementById('btn-registrar').innerText = "Actualizar"; verTab('ventas'); }
+        function eliminarVenta(i) { if (confirm("¿Eliminar registro?")) { const v = app.ventas[i]; if (v.producto !== "--- ANULADA ---") app.stock[v.producto] += v.cantidad; app.ventas.splice(i, 1); save(); } }
+        function cancelarVenta() { document.getElementById('v_edit_index').value = "-1"; document.getElementById('btn-registrar').innerText = "Guardar"; document.getElementById('v_cant').value = ""; document.getElementById('v_total').innerText = "0.00"; }
+        function renderVentas() { document.getElementById('lista_ventas').innerHTML = app.ventas.map((v, i) => `<tr class="border-b ${v.producto === '--- ANULADA ---' ? 'bg-red-50 text-red-300' : ''}"><td class="p-2">${v.fecha}<br><small>#${v.orden}</small></td><td class="p-2 font-bold">${v.placa}</td><td class="p-2">${v.producto}<br>${v.cantidad}Gls</td><td class="p-2 text-right font-black text-blue-900">$${v.total.toFixed(2)}</td><td class="p-2 text-center"><button onclick="editarVenta(${i})" class="text-blue-500 mr-2">✎</button><button onclick="eliminarVenta(${i})" class="text-red-500">🗑</button></td></tr>`).join(''); }
+
+        // --- EXPORTACIÓN Y BI ---
+        function exportarVentasExcel() { const ws = XLSX.utils.json_to_sheet(app.ventas); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ventas"); XLSX.writeFile(wb, "Historial_Ventas.xlsx"); }
+        function exportarComprasExcel() { const ws = XLSX.utils.json_to_sheet(app.compras); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Compras"); XLSX.writeFile(wb, "Historial_Compras.xlsx"); }
+        function exportarBIExcel(t) { const data = []; document.querySelectorAll(`#res_por_${t} tr`).forEach(tr => { const td = tr.querySelectorAll("td"); data.push({ [t.toUpperCase()]: td[0].innerText, GLS: td[1].innerText, TOTAL: td[2].innerText }); }); const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, t); XLSX.writeFile(wb, `Reporte_${t}.xlsx`); }
+        function calcularContabilidad() { const d = document.getElementById('cont_desde').value, h = document.getElementById('cont_hasta').value; let f = app.ventas; if (d) f = f.filter(v => v.fecha >= d); if (h) f = f.filter(v => v.fecha <= h); const agP = {}; f.forEach(v => { if (!agP[v.placa]) agP[v.placa] = { g: 0, t: 0 }; agP[v.placa].g += v.cantidad; agP[v.placa].t += v.total; }); document.getElementById('res_por_placa').innerHTML = Object.entries(agP).map(([p, d]) => `<tr><td class="p-1">${p}</td><td class="p-1 text-center font-bold">${d.g.toFixed(1)}</td><td class="p-1 text-right font-bold">$${d.t.toFixed(2)}</td></tr>`).join(''); const agA = {}; f.forEach(v => { const a = v.area || "S/A"; if (!agA[a]) agA[a] = { g: 0, t: 0 }; agA[a].g += v.cantidad; agA[a].t += v.total; }); document.getElementById('res_por_area').innerHTML = Object.entries(agA).map(([a, d]) => `<tr><td class="p-1">${a}</td><td class="p-1 text-center font-bold">${d.g.toFixed(1)}</td><td class="p-1 text-right font-bold">$${d.t.toFixed(2)}</td></tr>`).join(''); updateChart(f); }
+        function updateChart(data) { const ctx = document.getElementById('chartVentas').getContext('2d'); const ag = {}; data.forEach(v => ag[v.fecha] = (ag[v.fecha] || 0) + v.total); const labels = Object.keys(ag).sort().slice(-7); if (myChart) myChart.destroy(); myChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Ventas $', data: labels.map(l => ag[l]), backgroundColor: '#4f46e5' }] } }); }
+
+        // --- ADMIN ---
+        function addCliente() { const n = document.getElementById('adm_c_nom').value; if (n) { app.clientes.push({ id: Date.now(), nombre: n }); save(); actualizarSelects(); document.getElementById('adm_c_nom').value = ""; } }
+        function addVehiculo() { const p = document.getElementById('adm_v_pla').value.toUpperCase(), c = document.getElementById('adm_v_cli').value; if (p && c) { app.vehiculos.push({ placa: p, cid: c, area: document.getElementById('adm_v_area').value }); save(); alert("Vehículo vinculado"); } }
+        function actualizarSelects() { const h = '<option value="">-- Cliente --</option>' + app.clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join(''); document.getElementById('adm_v_cli').innerHTML = document.getElementById('v_cliente').innerHTML = h; }
+        function filtrarVehiculos() { const cid = document.getElementById('v_cliente').value; document.getElementById('v_placa').innerHTML = '<option value="">-- Placa --</option>' + app.vehiculos.filter(v => v.cid == cid).map(v => `<option value="${v.placa}">${v.placa}</option>`).join(''); }
+        function autoCompletarArea() { const v = app.vehiculos.find(v => v.placa === document.getElementById('v_placa').value); if (v) document.getElementById('v_area').value = v.area || ""; }
+        function actualizarUI() { ["super", "regular", "diesel"].forEach(p => { const prod = p === "super" ? "Súper" : p === "regular" ? "Regular" : "Diésel"; document.getElementById('stk_' + p).innerText = (app.stock[prod] || 0).toFixed(1); }); }
+        function descargarBackup() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(app)); const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "BACKUP_FUEL.json"); dl.click(); }
+        function restaurarBackup(ev) { const reader = new FileReader(); reader.onload = e => { app = JSON.parse(e.target.result); save(); location.reload(); }; reader.readAsText(ev.target.files[0]); }
+        function borrarTodo() { if (confirm("¿BORRAR TODO? Se perderán clientes y registros locales.")) { localStorage.clear(); location.reload(); } }
+
+        document.getElementById('v_fecha').valueAsDate = new Date(); document.getElementById('c_fecha').valueAsDate = new Date(); actualizarUI(); renderVentas(); renderCompras(); actualizarSelects();
+    </script>
+</body>
+</html>
